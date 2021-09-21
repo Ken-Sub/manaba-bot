@@ -1,0 +1,22 @@
+version: "3.8"
+
+services:
+  django:
+    build: ./Infrastructure/python
+    container_name: django
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./Application/core:/usr/src/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - "./.env"
+    depends_on:
+      - pgdb
+  pgdb:
+    image: postgres
+    container_name: pgdb
+    expose:
+      - "5432"
+    env_file:
+      - "./.env"
