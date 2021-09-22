@@ -5,8 +5,11 @@ services:
     build: ./Infrastructure/python
     container_name: django
     command: python manage.py runserver 0.0.0.0:8000
+    working_dir:
+      - "/usr/src/app/code"
     volumes:
-      - ./Application/core:/usr/src/app
+      - ./Application/core:/usr/src/app/code
+      - ./Infrastructure/python/work:/usr/src/app
     ports:
       - "8000:8000"
     env_file:

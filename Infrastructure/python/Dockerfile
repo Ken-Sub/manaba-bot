@@ -10,6 +10,7 @@ ENV PYTHONUNBUFFERED=1
 
 # USER ${USERNAME}
 WORKDIR /usr/src/app
+RUN mkdir /usr/src/app/code
 COPY ./work .
 
 RUN pip install --upgrade pip && pip uninstall django && pip install -r requirements.txt
