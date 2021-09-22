@@ -51,7 +51,7 @@ def manaba_scrape(id, password)-> list:
     except:
         error_message = ['manabaのログインに失敗しました。']
         browser.quit()
-        return None
+        return error_message
 
     # 受講科目の表示を曜日形式に変更
     scrape.button_click(browser, '/html/body/div[2]/div[2]/div/div[1]/div[2]/ul/li[3]/a')
@@ -110,3 +110,17 @@ def manaba_scrape(id, password)-> list:
             scrape.button_click(browser, '/html/body/div[2]/div[1]/div[5]/div[2]/a/img', 10)
             time.sleep(3)
     return report_and_difftime
+
+def arrange_manaba_scrape_result(id, password):
+    message_list = manaba_scrape(id, password)
+    messages = ""
+    if not message_list:
+        messages = '未提出課題の課題はありません。'
+    else:
+        for i in range(len(message_list)):
+            class_name = message_list[i][0]
+            report = message_list[i][1]
+            difftime = message_list[i][2]
+            messages += f"\n授業名：{class_name}\nレポート名：{report}\n期限まで {difftime}\n"
+
+    return messages
