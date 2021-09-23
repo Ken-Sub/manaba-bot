@@ -28,6 +28,8 @@ def manaba_scrape(id, password)-> list:
     # headlessモードで実行
     options = Options()
     options.add_argument('--headless')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-gpu')
 
     browser = webdriver.Chrome(ChromeDriverManager().install(), chrome_options=options)
 
@@ -39,14 +41,14 @@ def manaba_scrape(id, password)-> list:
     # ログイン
     form_dict = {'/html/body/div/div[2]/div[1]/form/p[1]/input':id,
                 '/html/body/div/div[2]/div[1]/form/p[2]/input':password}
-    scrape.input_element(browser, form_dict)
+    input_element(browser, form_dict)
     time.sleep(1)
-    scrape.button_click(browser, '/html/body/div/div[2]/div[1]/form/p[3]/input')
+    button_click(browser, '/html/body/div/div[2]/div[1]/form/p[3]/input')
     time.sleep(3)
 
     # コース一覧へ遷移
     try:
-        scrape.button_click(browser, '/html/body/div[2]/div[1]/div[5]/div[2]/a/img')
+        button_click(browser, '/html/body/div[2]/div[1]/div[5]/div[2]/a/img')
         time.sleep(1)
     except:
         error_message = ['manabaのログインに失敗しました。']
@@ -54,7 +56,7 @@ def manaba_scrape(id, password)-> list:
         return error_message
 
     # 受講科目の表示を曜日形式に変更
-    scrape.button_click(browser, '/html/body/div[2]/div[2]/div/div[1]/div[2]/ul/li[3]/a')
+    button_click(browser, '/html/body/div[2]/div[2]/div/div[1]/div[2]/ul/li[3]/a')
     time.sleep(1)
 
     # 授業名取得
@@ -107,20 +109,22 @@ def manaba_scrape(id, password)-> list:
                     report_info = (class_name,reports[i].text,diff)
                     report_and_difftime.append(report_info)
                 time.sleep(1)
-            scrape.button_click(browser, '/html/body/div[2]/div[1]/div[5]/div[2]/a/img', 10)
+            button_click(browser, '/html/body/div[2]/div[1]/div[5]/div[2]/a/img', 10)
             time.sleep(3)
     return report_and_difftime
 
 def arrange_manaba_scrape_result(id, password):
     message_list = manaba_scrape(id, password)
+    print(message_list)
     messages = ""
-    if not message_list:
+    if message_list[0] == "manabaのログインに失敗しました。":
         messages = '未提出課題の課題はありません。'
     else:
         for i in range(len(message_list)):
             class_name = message_list[i][0]
             report = message_list[i][1]
             difftime = message_list[i][2]
-            messages += f"\n授業名：{class_name}\nレポート名：{report}\n期限まで {difftime}\n"
+            messages += f"\n授業名：{class_name}\nレポート名：{report}\n期限まで {difftime}"
+            print(messages)
 
     return messages

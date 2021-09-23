@@ -1,8 +1,9 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import Student
 from .line_bot_manage import LineMessage
+from .forms import StudentEditForm
 
 from utils.manaba_scrape import arrange_manaba_scrape_result
 
@@ -15,7 +16,7 @@ from linebot.models import (
 
 
 def get_info():
-    with open('core/secret.json', 'r') as f:
+    with open('secret.json', 'r') as f:
         info = json.load(f)
     return info
 
@@ -23,13 +24,13 @@ def send_register_form(num):
     buttons_template_message = TemplateSendMessage(
         alt_text='ボット登録',
         template=ButtonsTemplate(
-            thumbnail_image_url='https://example.com/image.jpg',
+            # thumbnail_image_url='https://example.com/image.jpg',
             title='ボット登録',
             text='manabaのログインIDとPASSWORDを登録してください。',
             actions=[
                 URIAction(
                     label='uri',
-                    uri='http://example.com/' # numでstudentのidを取得しeditのurlに反映
+                    uri=f'https://3c9c-153-231-3-143.ngrok.io/linebot-ai/edit/{num}' # numでstudentのidを取得しeditのurlに反映
                 )
             ]
         )
@@ -39,20 +40,20 @@ def send_register_form(num):
 @csrf_exempt
 def callback(request):
     if request.method == "POST":
+        info = get_info()
+        line_bot_api = LineBotApi(info['ACCESSTOKEN'])
         request_json = json.loads(request.body.decode('utf-8'))
         events = request_json['events']
         reply_token = events[0]['replyToken']
-        line_user_id = events[0]['source']['userId']
-        line_display_name = events[0]['source']['display_name']
-
-        # チャネル設定のWeb hook接続確認時にはここ。このIDで見に来る。
-        # if line_user_id == 'torikeme4':
-        #     pass
-
+        profile = line_bot_api.get_profile(events[0]['source']['userId'])
+        line_user_id = profile.user_id
+        line_display_name = profile.display_name
+        
         # 友達追加時・ブロック解除時
         if events[0]['type'] == 'follow':
             Student.objects.create(user_id=line_user_id, name=line_display_name)
-            buttons_template_message = send_register_form()
+            student_id = Student.objects.get(user_id=line_user_id).user_id
+            buttons_template_message = send_register_form(student_id)
             line_message = LineMessage(buttons_template_message)
             line_message.reply(reply_token)
 
@@ -62,37 +63,35 @@ def callback(request):
         
         # メッセージ受信時
         elif events[0]['type'] == 'message':
-            student = Student.object.filter(user_id=line_user_id)
+            student = Student.objects.filter(user_id=line_user_id)
             if not student:
-                buttons_template_message = send_register_form()
-                line_message = LineMessage(buttons_template_message)
-                line_message.reply(reply_token)
+                Student.objects.create(user_id=line_user_id, name=line_display_name)
+                student_id = Student.objects.get(user_id=line_user_id).user_id
+                buttons_template_message = send_register_form(student_id)
+                line_bot_api.reply_message(reply_token, buttons_template_message)
             else:
-                manaba_id = student.manaba_id
-                manaba_password = student.manaba_password
-                text = request_json['events'][0]['message']['text']
+                text = events[0]['message']['text']
                 if text == "課題確認":
+                    student = Student.objects.get(user_id=line_user_id)
+                    manaba_id = student.manaba_id
+                    manaba_password = student.manaba_password
                     result = arrange_manaba_scrape_result(manaba_id, manaba_password)
-                    message = TemplateSendMessage(text=result)
-                    line_message = LineMessage(message)
-                    line_message.reply(data)
+                    line_bot_api.reply_message(reply_token, TextSendMessage(text=result))
                 else:
-                    message = TemplateSendMessage(text="「課題確認」と入力してください。")
-                    line_message = LineMessage(message)
-                    line_message.reply(data)
+                    line_bot_api.reply_message(reply_token, TextSendMessage(text="「課題確認」と入力してください。"))
 
     return HttpResponse()
 
 def edit(request, num):
-    obj = Student.objects.get(id=num)
+    obj = Student.objects.get(user_id=num)
     if request.method == "POST":
         student = StudentEditForm(request.POST, instance=obj)
         student.save()
-        return redirect(to="/success")
+        return redirect(to="/linebot-ai/success")
     params = {
         'title': 'manabaログイン情報フォーム',
         'student': obj,
-        'id': num,
+        'user_id': num,
         'form': StudentEditForm()
     }
     return render(request, 'linebot_api/edit.html', params)
