@@ -2,7 +2,6 @@ from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import Student
-from .line_bot_manage import LineMessage
 from .forms import StudentEditForm
 
 from utils.manaba_scrape import arrange_manaba_scrape_result
@@ -30,7 +29,7 @@ def send_register_form(num):
             actions=[
                 URIAction(
                     label='uri',
-                    uri=f'https://3c9c-153-231-3-143.ngrok.io/linebot-ai/edit/{num}' # numでstudentのidを取得しeditのurlに反映
+                    uri=f'https://c503-153-231-3-143.ngrok.io/linebot-ai/edit/{num}' # numでstudentのidを取得しeditのurlに反映
                 )
             ]
         )
@@ -48,14 +47,13 @@ def callback(request):
         profile = line_bot_api.get_profile(events[0]['source']['userId'])
         line_user_id = profile.user_id
         line_display_name = profile.display_name
-        
+
         # 友達追加時・ブロック解除時
         if events[0]['type'] == 'follow':
             Student.objects.create(user_id=line_user_id, name=line_display_name)
             student_id = Student.objects.get(user_id=line_user_id).user_id
             buttons_template_message = send_register_form(student_id)
-            line_message = LineMessage(buttons_template_message)
-            line_message.reply(reply_token)
+            line_bot_api.reply_message(reply_token, buttons_template_message)
 
         # アカウントがブロックされたとき
         elif events[0]['type'] == 'unfollow':
