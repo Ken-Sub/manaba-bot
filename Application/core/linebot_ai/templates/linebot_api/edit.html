@@ -10,7 +10,7 @@
         <h1 class="display-4 text-primary">
             {{title}}
         </h1>
-        <form action="{% url 'linebot_ai:edit' user_id %}" method="post">
+        <form action="{% url 'linebot_ai:edit' user_id user_name %}" method="post">
             {% csrf_token %}
             <table class="table">
                 {{form.as_table}}

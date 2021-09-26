@@ -9,6 +9,7 @@ services:
     volumes:
       - ./Application/core:/usr/src/app/code
       - ./Infrastructure/python/work/requirements.txt:/usr/src/app/requirements.txt
+      - ./.env:/usr/src/app/.env
     ports:
       - "8000:8000"
     depends_on:
